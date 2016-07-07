@@ -27,15 +27,19 @@ def recent_cashin(stock, days=30):
 	volume = 0
 	for i in range(30):
 		d = today - timedelta(days=i)
-		df = ts.get_tick_data('600570', date=d)
+		df = ts.get_tick_data(stock, date=d)
 		ret = day_cashin(df)
 		if ret!=None:
 			volume += ret[1]
 			cashin += ret[0]
 			print d, ret[0]/100000000.0, ret[2] # chinese Yi
 	print 'total_cashin', cashin/100000000.0
+	
 if __name__=="__main__":
-
+	f = open('stocks.dat', 'r')
+	for line in f:
+		print line
+		recent_cashin(line.rstrip())
 
 	
 
