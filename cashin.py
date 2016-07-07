@@ -17,29 +17,49 @@ def day_cashin(df):
 		moment_cashin = sig*df.ix[i,'amount']
 		total_volume += sig*100.0*df.ix[i, 'volume']
 		total_cashin += moment_cashin
-	return total_cashin, total_volume, df.ix[0,'price']
+	# cash, volume, price(keep 2 digits)
+	return total_cashin, total_volume, "%.2f"%df.ix[0,'price']
 	
 
 def recent_cashin(stock, days=30):
 	from datetime import date, datetime, timedelta
-	today = date(2016,7,7)
+	today = date(datetime.today().year,datetime.today().month,datetime.today().day)
 	cashin = 0
 	volume = 0
+	rows = list()
 	for i in range(30):
-		d = today - timedelta(days=i)
+		d = str(today - timedelta(days=i))
 		df = ts.get_tick_data(stock, date=d)
 		ret = day_cashin(df)
 		if ret!=None:
 			volume += ret[1]
 			cashin += ret[0]
-			print d, ret[0]/100000000.0, ret[2] # chinese Yi
+			row = (d, ret[0]/100000000.0, ret[1], ret[2])# chinese Yi
+			rows.append(row)
+			print row
+		else:
+			row = (d, 0, 0, 0)
+			rows.append(row)
+					
 	print 'total_cashin', cashin/100000000.0
+	return rows
 	
 if __name__=="__main__":
-	f = open('stocks.dat', 'r')
-	for line in f:
-		print line
-		recent_cashin(line.rstrip())
-
+	import sys,json
+	if (len(sys.argv)>1):
+		if sys.argv[1]=='b':
+			f = open('stocks.dat', 'r')
+			stockdict = dict()
+			for line in ['603818']:
+				print line
+				stock = line.rstrip()
+				stockdict[stock] = recent_cashin(stock) 
+			with open('stockdict.json', 'w') as f:
+				json.dump(stockdict, f)
+		else:
+			with open('stockdict.json', 'r') as f:
+				stockdict = json.load(f)
+				for row in stockdict['603818']:
+					print row
 	
 
