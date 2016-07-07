@@ -25,8 +25,6 @@ def day_cashin(df):
 def recent_cashin(stock, days=30):
 	from datetime import date, datetime, timedelta
 	today = date(datetime.today().year,datetime.today().month,datetime.today().day)
-	cashin = 0
-	volume = 0
 	# calender is each day's cashin, volume, price
 	calender = dict()
 	for i in range(30):
@@ -34,9 +32,7 @@ def recent_cashin(stock, days=30):
 		df = ts.get_tick_data(stock, date=d)
 		ret = day_cashin(df)
 		if ret!=None:
-			volume += ret[1]
-			cashin += ret[0]
-			calender[d] = (ret[0], ret[1], ret[2])# chinese Yi
+			calender[d] = (ret[0], ret[1], ret[2])
 		else:
 			calender[d] = (0, 0, 0)
 		print calender[d]
@@ -48,28 +44,58 @@ def compute_cash(stockdict):
 		for day in diary:
 			cash, volume, price = diary[day]
 			total_cashin += cash
-		print stock, total_cashin/100000000.0, 'Y'
+		df = ts.get_realtime_quotes(stock)
+		name = df.ix[0,'name']
+		print stock, name, total_cashin/100000000.0
 		
-def change_format(stockdict):
+
+#stocks is a list of stock codes, build a brand new dictionary
+def build_by_stocks(stocks):
+	stockdict = dict()
+	for stock in stocks:
+		print stock
+		stockdict[stock] = recent_cashin(stock)
+			
 	with open('stockdict.json', 'w') as f:
 		json.dump(stockdict, f)
+		
+#stocks is a list of stock codes, maybe contain new codes
+def update_by_stocks(stockdict, stocks):
+	for s in stocks:
+		if not s in stockdict:
+			print 'to be updated:', s
+			stockdict[s] = recent_cashin(s)
 	
+	with open('stockdict.json', 'w') as f:
+		json.dump(stockdict, f)
+
 if __name__=="__main__":
 	if (len(sys.argv)>1):
 		# build data
 		if sys.argv[1]=='b':
-			stocks = open('stocks.dat', 'r')
-			stockdict = dict()
-			for line in stocks:
-				print line
-				stock = line.rstrip()
-				stockdict[stock] = recent_cashin(stock) 
-			with open('stockdict.json', 'w') as f:
-				json.dump(stockdict, f)
-		# read data or change format
+			with open('stocks.dat') as f:
+				stocks = f.read().splitlines()
+				build_by_stocks(stocks)
+			
+		# read data and compute
 		elif sys.argv[1]=='c':
 			with open('stockdict.json', 'r') as f:
 				stockdict = json.load(f)
 				compute_cash(stockdict)
-	
-
+				
+		# update data
+		elif sys.argv[1]=='u':
+			with open('stocks.dat') as f1, open('stockdict.json') as f2:
+				stocks = f1.read().splitlines()
+				stockdict = json.load(f2)
+				update_by_stocks(stockdict, stocks)
+		
+		# clear data, change format
+		elif sys.argv[1]=='n':
+			with open('stockdict.json','r+') as f:
+				stockdict = json.load(f)
+				for s, diary in stockdict.iteritems():
+					if 'name' in diary:
+						diary.pop('name', None)
+			with open('stockdict.json', 'w') as f:
+				json.dump(stockdict, f)	
