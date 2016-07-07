@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*- 
 import tushare as ts
+import sys,json
 
 def day_cashin(df):
 	rows, cols = df.shape
@@ -26,7 +27,8 @@ def recent_cashin(stock, days=30):
 	today = date(datetime.today().year,datetime.today().month,datetime.today().day)
 	cashin = 0
 	volume = 0
-	rows = list()
+	# calender is each day's cashin, volume, price
+	calender = dict()
 	for i in range(30):
 		d = str(today - timedelta(days=i))
 		df = ts.get_tick_data(stock, date=d)
@@ -34,32 +36,40 @@ def recent_cashin(stock, days=30):
 		if ret!=None:
 			volume += ret[1]
 			cashin += ret[0]
-			row = (d, ret[0]/100000000.0, ret[1], ret[2])# chinese Yi
-			rows.append(row)
-			print row
+			calender[d] = (ret[0], ret[1], ret[2])# chinese Yi
 		else:
-			row = (d, 0, 0, 0)
-			rows.append(row)
-					
-	print 'total_cashin', cashin/100000000.0
-	return rows
+			calender[d] = (0, 0, 0)
+		print calender[d]
+	return calender
+
+def compute_cash(stockdict):
+	for stock, diary in stockdict.iteritems():
+		total_cashin = 0
+		for day in diary:
+			cash, volume, price = diary[day]
+			total_cashin += cash
+		print stock, total_cashin/100000000.0, 'Y'
+		
+def change_format(stockdict):
+	with open('stockdict.json', 'w') as f:
+		json.dump(stockdict, f)
 	
 if __name__=="__main__":
-	import sys,json
 	if (len(sys.argv)>1):
+		# build data
 		if sys.argv[1]=='b':
-			f = open('stocks.dat', 'r')
+			stocks = open('stocks.dat', 'r')
 			stockdict = dict()
-			for line in ['603818']:
+			for line in stocks:
 				print line
 				stock = line.rstrip()
 				stockdict[stock] = recent_cashin(stock) 
 			with open('stockdict.json', 'w') as f:
 				json.dump(stockdict, f)
-		else:
+		# read data or change format
+		elif sys.argv[1]=='c':
 			with open('stockdict.json', 'r') as f:
 				stockdict = json.load(f)
-				for row in stockdict['603818']:
-					print row
+				compute_cash(stockdict)
 	
 
