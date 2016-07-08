@@ -5,7 +5,7 @@ import sys,json
 def day_cashin(df):
 	rows, cols = df.shape
 	# too few rows, no available data in this day
-	if rows<100:
+	if rows<10:
 		return None
 	total_cashin = 0.0
 	total_volume = 0.0
@@ -21,15 +21,17 @@ def day_cashin(df):
 	# cash, volume, price(keep 2 digits)
 	return total_cashin, total_volume, "%.2f"%df.ix[0,'price']
 	
-
-def recent_cashin(stock, days=30):
+def recent_cashin(stock, days=30, dd=False):
 	from datetime import date, datetime, timedelta
 	today = date(datetime.today().year,datetime.today().month,datetime.today().day)
 	# calender is each day's cashin, volume, price
 	calender = dict()
 	for i in range(30):
 		d = str(today - timedelta(days=i))
-		df = ts.get_tick_data(stock, date=d)
+		if not dd:
+			df = ts.get_tick_data(stock, date=d)
+		else:
+			df = ts.get_sina_dd(stock, date=d)
 		ret = day_cashin(df)
 		if ret!=None:
 			calender[d] = (ret[0], ret[1], ret[2])
@@ -48,16 +50,14 @@ def compute_cash(stockdict):
 		name = df.ix[0,'name']
 		print stock, name, total_cashin/100000000.0
 		
-
 #stocks is a list of stock codes, build a brand new dictionary
-def build_by_stocks(stocks):
+#dd dadan, define the tushare api use
+def build_by_stocks(stocks, dd):
 	stockdict = dict()
 	for stock in stocks:
 		print stock
-		stockdict[stock] = recent_cashin(stock)
-			
-	with open('stockdict.json', 'w') as f:
-		json.dump(stockdict, f)
+		stockdict[stock] = recent_cashin(stock, dd)
+	return stockdict
 		
 #stocks is a list of stock codes, maybe contain new codes
 def update_by_stocks(stockdict, stocks):
@@ -73,10 +73,11 @@ if __name__=="__main__":
 	if (len(sys.argv)>1):
 		# build data
 		if sys.argv[1]=='b':
-			with open('stocks.dat') as f:
+			with open('stocks.dat') as f, open('sina_dd.json', 'w') as fjson:
 				stocks = f.read().splitlines()
-				build_by_stocks(stocks)
-			
+				stockdict = build_by_stocks(stocks,dd=True)
+				json.dump(stockdict, fjson)
+				
 		# read data and compute
 		elif sys.argv[1]=='c':
 			with open('stockdict.json', 'r') as f:
