@@ -60,11 +60,8 @@ class StockHist:
 		for s in self.db:
 			watch.tic()
 			samples[s] = self.export_valid_dates_for_code(s, period)
-		import json
-		with open('export.json','w') as f_s:
-			json.dump(samples, f_s)
-		
-		
+		return samples
+	
 	def __init__(self):
 		try:
 			self.load()
@@ -72,8 +69,10 @@ class StockHist:
 			self.build()
 		pass
 				
-
 if __name__=='__main__':
 	shist = StockHist()
-	shist.export_valid_dates_for_all(30)
+	samples = shist.export_valid_dates_for_all(30)
+	import json
+	with open('export.json','w') as f_s:
+		json.dump(samples, f_s)
 
