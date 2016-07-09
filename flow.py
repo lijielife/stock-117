@@ -1,15 +1,34 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*- 
 from datetime import date, datetime, timedelta
-
 def today_date():
 	return date(datetime.today().year,datetime.today().month,datetime.today().day)
+
+def day_flow_conditions(code, date):
+	import tushare as ts
+	sell_amount = 0
+	buy_amount = 0
+	sell_volume = 0
+	buy_volume = 0
+	df = ts.get_tick_data(code, date = date)	
+	if hasattr(df,'shape'):
+		rows, cols = df.shape
+		for i in range(rows):
+			if df.ix[i,'amount']>10**6:
+				if df.ix[i,'type']=='\xe5\x8d\x96\xe7\x9b\x98': #　selling
+					sell_amount += df.ix[i,'amount']
+					sell_volume += df.ix[i,'volume']
+				elif df.ix[i, 'type']=='\xe4\xb9\xb0\xe7\x9b\x98': # buying
+					buy_amount += df.ix[i,'amount']
+					buy_volume += df.ix[i,'volume']
+				else:
+					continue
+	return (sell_amount, buy_amount, sell_volume, buy_volume)
 	
 def day_cashin(df):
 	if not hasattr(df,'shape'):
 		return None
 	rows, cols = df.shape
-	# too few rows, no available data in this day
 	total_cashin = 0.0
 	total_volume = 0.0
 	for i in range(rows):
@@ -62,7 +81,6 @@ def recent_cashin(stock, days, source):
 def compute_cash(stockdict, today, period):
 	import stocknames
 	names = stocknames.StockNames()
-
 	for stock,diary in stockdict.iteritems():
 		total_cashin = 0		
 		detail_txt = ""
@@ -84,9 +102,18 @@ def compute_cash(stockdict, today, period):
 #stocks is a list of stock codes, build a brand new dictionary
 def build_by_stocks(stocks, days, source):
 	stockdict = dict()
+	from stockhistory import Watch
+	import tushare as ts
+	watch = Watch(len(stocks))
 	for stock in stocks:
-		print stock
-		stockdict[stock] = recent_cashin(stock, days = days, source = source)
+		df = ts.get_hist_data(stock)
+		stockdict[stock] = dict()
+		for d in df.index[:days]:
+			try:
+				stockdict[stock][d] = day_flow_conditions(stock, date = d)
+			except:
+				pass
+		watch.tic()
 	return stockdict
 		
 #stocks is a list of stock codes, maybe contain new codes
