@@ -45,6 +45,11 @@ class StockHist:
 		import json
 		with open('hist.json','r') as f_db:
 			self.db = json.load(f_db)
+	
+	def find(self, code, date):
+		if code in self.db:
+			if 	date in self.db[code]:
+				return self.db[code][date]
 		
 	def export_valid_dates_for_code(self, code, period):
 		samples = dict()

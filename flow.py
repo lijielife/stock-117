@@ -24,60 +24,7 @@ def day_flow_conditions(code, date):
 				else:
 					continue
 	return (sell_amount, buy_amount, sell_volume, buy_volume)
-	
-def day_cashin(df):
-	if not hasattr(df,'shape'):
-		return None
-	rows, cols = df.shape
-	total_cashin = 0.0
-	total_volume = 0.0
-	for i in range(rows):
-		sig = 0
-		if df.ix[i,'type']=='\xe5\x8d\x96\xe7\x9b\x98': #　selling
-			sig = -1
-		elif df.ix[i, 'type']=='\xe4\xb9\xb0\xe7\x9b\x98': # buying
-			sig = 1
-		else:
-			continue
-		total_volume += sig*df.ix[i,'volume']
-		total_cashin += sig*df.ix[i,'volume']*df.ix[0,'price']
-	
-	# cash, volume, price(keep 2 digits)
-	return total_cashin, total_volume, df.ix[0,'price']
-
-def day_flow(stock, day, source):
-	import tushare as ts
-	try:
-		if source == 1: # sina
-			df = ts.get_sina_dd(stock, date=day)
-		elif source == 0: #normal
-			df = ts.get_tick_data(stock, date=day)
-		elif source == 2: # today
-			df = ts.get_today_ticks(stock)
-	except:
-		return None
-	
-	ret = day_cashin(df)
-	if ret!=None:
-		if source == 1: # sina
-			return  (ret[0], ret[1], ret[2])
-		elif source == 0 or source ==2: # normal or today
-			return  (ret[0]*100.0, ret[1]*100.0, ret[2])
-	else:
-		return (0, 0, 0)
-			
-def recent_cashin(stock, days, source):
-	today = today_date()
-	# calender is each day's cashin, volume, price
-	calender = dict()
-	for i in range(days):
-		d = str(today - timedelta(days=i))
-		ret = day_flow(stock, d, source)
-		if not ret == None:	
-			calender[d] = ret
-			print d, calender[d]
-	return calender
-	
+		
 def compute_cash(stockdict, today, period):
 	import stocknames
 	names = stocknames.StockNames()
