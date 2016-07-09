@@ -2,11 +2,6 @@
 # -*- coding: utf-8 -*- 
 from datetime import date, datetime, timedelta
 
-def stock_name(stock):
-	import tushare as ts
-	df = ts.get_realtime_quotes(stock)
-	return df.ix[0,'name']
-
 def today_date():
 	return date(datetime.today().year,datetime.today().month,datetime.today().day)
 	
@@ -33,12 +28,16 @@ def day_cashin(df):
 
 def day_flow(stock, day, source):
 	import tushare as ts
-	if source == 1: # sina
-		df = ts.get_sina_dd(stock, date=day)
-	elif source == 0: #normal
-		df = ts.get_tick_data(stock, date=day)
-	elif source == 2: # today
-		df = ts.get_today_ticks(stock)
+	try:
+		if source == 1: # sina
+			df = ts.get_sina_dd(stock, date=day)
+		elif source == 0: #normal
+			df = ts.get_tick_data(stock, date=day)
+		elif source == 2: # today
+			df = ts.get_today_ticks(stock)
+	except:
+		return None
+	
 	ret = day_cashin(df)
 	if ret!=None:
 		if source == 1: # sina
@@ -54,21 +53,33 @@ def recent_cashin(stock, days, source):
 	calender = dict()
 	for i in range(days):
 		d = str(today - timedelta(days=i))
-		calender[d] = day_flow(stock, d, source)
-		print calender[d]
+		ret = day_flow(stock, d, source)
+		if not ret == None:	
+			calender[d] = ret
+			print d, calender[d]
 	return calender
 	
 def compute_cash(stockdict, today, period):
+	import stocknames
+	names = stocknames.StockNames()
+
 	for stock,diary in stockdict.iteritems():
-		total_cashin = 0
+		total_cashin = 0		
+		detail_txt = ""
 		for i in range(period):
 			day = str(today - timedelta(days=i))
 			if day in diary:
 				cash, volume, price = diary[day]
 				total_cashin += cash
-				if cash!=0.0:
-					print "{}\t{}\t{}".format(day, "%.3f"%(cash/100000000.0), price)
-		print stock, stock_name(stock), total_cashin/100000000.0
+		import math
+		if abs(total_cashin/10**8)>3:
+			print stock, names.find(stock), total_cashin/10**8
+			for i in range(10):
+				day = str(today - timedelta(days=i))
+				if day in diary:
+					cash, volume, price = diary[day]
+					if price > 0.1:
+						print "{}\t{}\t{}".format(day, cash/10**8, price)
 		
 #stocks is a list of stock codes, build a brand new dictionary
 def build_by_stocks(stocks, days, source):
@@ -170,4 +181,4 @@ if __name__=="__main__":
 					diary.pop('name', None)
 			f_db.close()
 			f_db = open(args.database, 'w')
-			json.dump(stockdict, f_db)	
+			json.dump(stockdict, f_db)
