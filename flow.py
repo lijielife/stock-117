@@ -74,7 +74,7 @@ def compute_cash(stockdict, today, period):
 		import math
 		if abs(total_cashin/10**8)>3:
 			print stock, names.find(stock), total_cashin/10**8
-			for i in range(10):
+			for i in range(period):
 				day = str(today - timedelta(days=i))
 				if day in diary:
 					cash, volume, price = diary[day]
