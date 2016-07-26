@@ -3,7 +3,11 @@
 from datetime import date, datetime, timedelta
 def today_date():
 	return date(datetime.today().year,datetime.today().month,datetime.today().day)
-
+def p_diff(p_now, p_prev):
+	if p_prev>1.0:
+		return (p_now-p_prev)/float(p_prev)
+	else:
+		return 0
 def day_flow_conditions(code, date):
 	import tushare as ts
 	sell_amount = 0
@@ -28,17 +32,23 @@ def day_flow_conditions(code, date):
 def compute_cash(stockdict, today, period):
 	import stocknames
 	names = stocknames.StockNames()
+	count = 0
 	for stock,diary in stockdict.iteritems():
 		total_cashin = 0		
 		detail_txt = ""
+		flows = list()
+		prices = list()
 		for i in range(period):
 			day = str(today - timedelta(days=i))
 			if day in diary:
-				cash, volume, price = diary[day]
-				total_cashin += cash
-		import math
-		if abs(total_cashin/10**8)>3:
-			print stock, names.find(stock), total_cashin/10**8
+				flow, volume, price = diary[day]
+				flows.append(flow)
+				prices.append(price)
+
+		if sum(flows)/10**8>3:
+			count += 1
+			print count
+			print stock, names.find(stock), sum(flows)/10**8
 			for i in range(period):
 				day = str(today - timedelta(days=i))
 				if day in diary:
@@ -53,13 +63,13 @@ def build_by_stocks(stocks, days, source):
 	import tushare as ts
 	watch = Watch(len(stocks))
 	for stock in stocks:
+		# get hist data of the stock, to get the index as dates
 		df = ts.get_hist_data(stock)
 		stockdict[stock] = dict()
 		for d in df.index[:days]:
-			try:
-				stockdict[stock][d] = day_flow_conditions(stock, date = d)
-			except:
-				pass
+			stockdict[stock][d] = [day_flow_conditions(stock, date = d), df.ix[d].values.tolist()]
+			print df.ix[d].values.tolist()
+			pass
 		watch.tic()
 	return stockdict
 		

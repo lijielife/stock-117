@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*- 
 import json
-import tushare as ts
 class StockNames:
 	def __init__(self):
 		self.load_db()
@@ -14,6 +13,7 @@ class StockNames:
 			self.build_db()
 			
 	def build_db(self):
+		import tushare as ts
 		df = ts.get_today_all()
 		rows, cols = df.shape
 		self.names = dict()
